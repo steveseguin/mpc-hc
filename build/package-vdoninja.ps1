@@ -1,5 +1,5 @@
 param(
-    [ValidatePattern('^\d+\.\d+\.\d+-vdoninja\.\d+$')][string]$Version = '2.8.3-vdoninja.1',
+    [ValidatePattern('^\d+\.\d+\.\d+-vdoninja\.\d+$')][string]$Version = '2.8.4-vdoninja.2',
     [string]$PlayerDirectory = "$PSScriptRoot\..\bin\mpc-hc_x64",
     [string]$OutputDirectory = "$PSScriptRoot\..\bin\releases",
     [string]$CrtDirectory

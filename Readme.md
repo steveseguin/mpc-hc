@@ -32,6 +32,14 @@ WHEP; VP8, VP9, AV1 and mono/stereo Opus sources are also supported when availab
 in the runtime. VDO.Ninja handles its own signaling, passwords, rooms and
 asynchronous data-channel `whepSettings` handoffs.
 
+WebRTC streams keep the window size you choose, including when opening a stream,
+changing resolution or reconnecting. The viewer fills MPC's video area and
+handles aspect ratio; resize the window or use fullscreen to change its size.
+
+Automatic update checks are **off by default**. Manual checks, or automatic
+checks you enable in Options, use **steveseguin/mpc-hc** only, including the backup
+version feed. The update dialog opens [this fork's releases](https://github.com/steveseguin/mpc-hc/releases).
+
 WebRTC playback uses an embedded WebView2 engine. MPC's DirectShow filters,
 shaders and audio-output-device settings do not apply to these streams; browser
 audio uses the Windows default output device. Direct WHEP servers must allow

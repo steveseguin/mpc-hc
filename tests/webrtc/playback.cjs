@@ -26,6 +26,7 @@ function appControl(pid, action, value = '') {
     let delayAnswer = 0;
     let attempt = 0;
     let debugPort;
+    let openingRect;
     const server = http.createServer(async (req, res) => {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'POST, DELETE, OPTIONS, PATCH');
@@ -94,14 +95,14 @@ function appControl(pid, action, value = '') {
                 } else {
                     await pc.setRemoteDescription({type:'offer', sdp: offer});
                 }
-                const canvas = document.createElement('canvas');
+                const canvas = window.videoCanvas = document.createElement('canvas');
                 canvas.width = 640; canvas.height = 360;
                 const ctx = canvas.getContext('2d');
                 let frame = 0;
                 clearInterval(window.drawTimer);
                 window.drawTimer = setInterval(() => {
                     ctx.fillStyle = frame++ % 2 ? '#128841' : '#2040bb';
-                    ctx.fillRect(0, 0, 640, 360);
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
                     ctx.fillStyle = '#fff'; ctx.font = '30px sans-serif';
                     ctx.fillText(`MPC WebRTC ${codec} ${frame}`, 40, 100);
                 }, 50);
@@ -162,9 +163,9 @@ function appControl(pid, action, value = '') {
                     fs.cpSync(path.join(path.dirname(source), entry.name), path.join(folder, entry.name), {recursive:true});
                 }
             }
-            fs.writeFileSync(path.join(folder, 'mpc-hc64.ini'), '[Settings]\r\nVolume=50\r\nMute=0\r\nKeepHistory=0\r\nUpdaterAutoCheck=0\r\n');
+            fs.writeFileSync(path.join(folder, 'mpc-hc64.ini'), '[Settings]\r\nVolume=50\r\nMute=0\r\nKeepHistory=0\r\nUpdaterAutoCheck=0\r\nLimitWindowProportions=1\r\n');
         }
-        host = spawn(executable, appMode ? ['/new', url, '/play'] : [url], {
+        host = spawn(executable, appMode ? ['/new'] : [url], {
             windowsHide:true, env:{...process.env,
                 WEBVIEW2_USER_DATA_FOLDER:path.resolve(`bin/webrtc-tests/profile-${attempt}`),
                 WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:`--remote-debugging-port=${debugPort}`}
@@ -182,6 +183,9 @@ function appControl(pid, action, value = '') {
             }
             assert.ok(hwnd, 'MPC main window exists');
             appControl(host.pid, 'show');
+            appControl(host.pid, 'resize');
+            openingRect = JSON.parse(appControl(host.pid, 'rect'));
+            appControl(host.pid, 'open', url);
         }
         return connectViewer();
     }
@@ -238,6 +242,7 @@ function appControl(pid, action, value = '') {
                 }));
             });
             console.log(appMode ? 'Decoded in MPC-HC:' : 'Decoded in native WebView2 host:', codec, stats);
+            if (appMode) assert.deepEqual(JSON.parse(appControl(host.pid, 'rect')), openingRect, 'Opening WebRTC preserves the chosen window');
             assert.ok(stats.some(s => s.codec?.toLowerCase() === `video/${codec.toLowerCase()}` && s.frames > 0));
             assert.ok(stats.some(s => s.codec === 'audio/opus' && s.samples > 0 && s.energy > 0));
             await native(4, -2000);
@@ -255,6 +260,22 @@ function appControl(pid, action, value = '') {
                 await sleep(500);
                 const windowed = await page.evaluate(() => ({width:innerWidth, height:innerHeight}));
                 assert.ok(windowed.width > 500 && windowed.height > 200, 'MPC video area has visible bounds');
+                // A browser viewport must not depend on the encoded resolution,
+                // even with native "normal size" video framing and automatic
+                // window proportions enabled. Change actual RTP video frames.
+                appControl(host.pid, 'command', 836);
+                for (const [width, height] of [[160,90], [1280,720], [360,640], [640,360]]) {
+                    await publisher.evaluate(([w,h]) => { videoCanvas.width = w; videoCanvas.height = h; }, [width,height]);
+                    await page.waitForFunction(([w,h]) => {
+                        const video = document.querySelector('video');
+                        return video.videoWidth === w && video.videoHeight === h;
+                    }, [width,height], {timeout:30000});
+                    await sleep(900); // Include the bridge's next size notification.
+                    assert.deepEqual(JSON.parse(appControl(host.pid, 'rect')), openingRect, `Window stays fixed for ${width}x${height}`);
+                    assert.deepEqual(await page.evaluate(() => ({width:innerWidth, height:innerHeight})), windowed, 'Browser fills the same viewing area');
+                }
+                appControl(host.pid, 'command', 839);
+                console.log('PASS: adaptive 160x90, 1280x720, portrait 360x640 and 640x360 preserve window and viewport');
                 appControl(host.pid, 'command', 830);
                 await page.waitForFunction(size => innerWidth > size.width && innerHeight > size.height, windowed);
                 appControl(host.pid, 'command', 830);
@@ -297,6 +318,7 @@ function appControl(pid, action, value = '') {
                 assert.match(status, /Playing/, 'Regular media plays after WebRTC');
                 if (process.env.MPC_TEST_MEDIA) {
                     assert.match(status, /640x360/, 'Normal H.264 video dimensions are reported');
+                    assert.notDeepEqual(JSON.parse(appControl(host.pid, 'rect')), openingRect, 'Normal file auto-zoom still works after WebRTC');
                     const modules = JSON.parse(appControl(host.pid, 'modules'));
                     for (const name of ['LAVVideo.ax', 'LAVAudio.ax', 'LAVSplitter.ax']) {
                         assert.ok(modules.some(module => module.toLowerCase() === path.resolve('bin/webrtc-tests/app/LAVFilters64', name).toLowerCase()), `Packaged ${name} is loaded`);

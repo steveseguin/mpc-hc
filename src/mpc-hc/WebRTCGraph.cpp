@@ -103,11 +103,14 @@ STDMETHODIMP CWebRTCGraph::put_Owner(OAHWND owner)
 STDMETHODIMP CWebRTCGraph::SetWindowPosition(long left, long top, long width, long height)
 {
     m_window.MoveWindow(left, top, width, height);
+    // The page owns video layout and letterboxing. Keep its viewport at the
+    // full viewing area, independent of a peer's adaptive encoded resolution.
+    m_player->SetBounds(RECT{0, 0, width, height});
     return S_OK;
 }
-STDMETHODIMP CWebRTCGraph::SetDestinationPosition(long left, long top, long width, long height)
+STDMETHODIMP CWebRTCGraph::SetDestinationPosition(long, long, long, long)
 {
-    m_player->SetBounds(RECT{left, top, left + width, top + height});
+    // DirectShow's video rectangle must not resize the embedded browser.
     return S_OK;
 }
 STDMETHODIMP CWebRTCGraph::GetVideoSize(long* width, long* height)

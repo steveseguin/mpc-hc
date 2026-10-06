@@ -48,7 +48,10 @@ remain supported. The browser handles RTP, jitter, codec negotiation, and decodi
 Play/Pause and volume/mute control the embedded media. Pause silences and pauses
 presentation while the live connection remains active; Play returns to live
 media. Stop closes the connection; Play after Stop reconnects. Live streams have
-no seekable timeline. Video sizing and fullscreen use the existing player window.
+no seekable timeline. Opening, reconnecting, and adaptive resolution changes
+preserve the existing window size. The browser fills MPC's video area and owns
+letterboxing and scene layout. Manual window resizing and fullscreen work;
+DirectShow video-frame sizing and pan/scan settings do not control the browser.
 DirectShow filters, LAV decoding, MPC audio processing/output-device settings,
 external subtitles, shaders, frame stepping, and Save Image do not apply to this
 engine. Browser audio uses the Windows default output device.
@@ -102,6 +105,10 @@ MPC-HC executable before running the script. The test makes a portable copy in
 `bin/webrtc-tests/app` with isolated settings and drives the player's own commands.
 It also checks mute, resizing, fullscreen, the Space shortcut, normal PCM WAV
 playback between WebRTC sessions, HTTP URL routing, Close Media, and normal exit.
+The H.264 publisher changes between 160x90, 1280x720, portrait 360x640 and 640x360
+while assertions check that both the window and browser viewport remain fixed.
+These checks also cover opening with automatic window proportions enabled and
+MPC's native "normal size" video framing.
 The application windows are displayed during this test. For example:
 
 ```powershell
@@ -109,6 +116,14 @@ $env:MPC_EXE = 'bin\mpc-hc_x64\mpc-hc64.exe'
 $env:VDO_SOURCE = 'C:\Users\Steve\code\obsninja' # optional local checkout
 node tests\webrtc\playback.cjs
 ```
+
+To validate an existing hosted stream, set `MPC_EXE` and `VDO_TEST_URL`, then run
+`node tests/webrtc/live-viewer.cjs`. This uses the exact supplied viewing URL in
+an isolated portable player. It checks sustained frame delivery, stable window
+and viewport sizes, landscape/portrait window resizing, fullscreen and return,
+volume, mute, pause/resume, Stop/Play reconnect, clean exit and the default-off
+update setting. Allow roughly three minutes with an active publisher. Logs and
+screenshots stay under the ignored `bin/webrtc-tests` directory.
 
 For release validation, `node tests/webrtc/create-mp4.cjs` generates a synthetic
 H.264/AAC MP4 using Edge's encoder. Set `MPC_TEST_MEDIA` to its output
@@ -131,7 +146,7 @@ Build the x64 Release player, LAV Filters, icon library and translations using
 the [compilation instructions](Compilation.md). Commit the source and create the
 annotated release tag, then build the player again so its version records that
 commit. Run `powershell -NoProfile -ExecutionPolicy Bypass -File
-build/package-vdoninja.ps1 -Version 2.8.3-vdoninja.1` to package that tag.
+build/package-vdoninja.ps1 -Version 2.8.4-vdoninja.2` to package that tag.
 
 The packager checks required components and source identity, includes the
 Visual C++ runtime and license notices, and writes a portable ZIP and SHA256
@@ -140,3 +155,9 @@ checksum under `bin/releases`. It downloads the pinned, SHA256-verified upstream
 `BUILD-INFO.json` and `FILES.sha256` record the source and individual package
 files. Extract and validate the ZIP with `MPC_EXE` pointing at its player before
 uploading it. The WebView2 Runtime is a separate runtime prerequisite.
+
+Automatic version checks default to disabled both in the application and in the
+portable settings. Manual checks and explicitly enabled automatic checks fetch
+`steveseguin/mpc-hc`'s `develop/version.txt`; the CDN backup uses the same fork.
+The download button opens `https://github.com/steveseguin/mpc-hc/releases`.
+There is no upstream update feed or upstream fallback.

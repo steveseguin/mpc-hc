@@ -853,6 +853,7 @@ CMainFrame::CMainFrame()
     , m_nLastSkipDirection(0)
     , m_fCustomGraph(false)
     , m_fShockwaveGraph(false)
+    , m_fWebRTCGraph(false)
     , m_fFrameSteppingActive(false)
     , m_nStepForwardCount(0)
     , m_rtStepForwardStart(0)
@@ -4618,7 +4619,7 @@ LRESULT CMainFrame::OnFilePostOpenmedia(WPARAM wParam, LPARAM lParam)
     bool go_fullscreen = s.fLaunchfullscreen && !m_fAudioOnly && !IsFullScreenMode() && lastSkipDirection == 0 && !(s.nCLSwitches & CLSW_THUMBNAILS);
 
     // auto-zoom if requested
-    if (IsWindowVisible() && s.fRememberZoomLevel && !IsFullScreenMode() && !IsZoomed() && !IsIconic() && !IsAeroSnapped()) {
+    if (!m_fWebRTCGraph && IsWindowVisible() && s.fRememberZoomLevel && !IsFullScreenMode() && !IsZoomed() && !IsIconic() && !IsAeroSnapped()) {
         if (go_fullscreen) {
             m_bNeedZoomAfterFullscreenExit = true;
         }
@@ -14119,6 +14120,13 @@ void CMainFrame::ZoomVideoWindow(double dScale/* = ZOOM_DEFAULT_LEVEL*/, bool ig
         return;
     }
 
+    // WebRTC resolution adapts to the viewing area. Automatic window zoom
+    // would feed that resolution back into the viewport and shrink it again.
+    // Explicit user zoom commands remain available.
+    if (m_fWebRTCGraph && dScale == ZOOM_DEFAULT_LEVEL && !ignore_video_size) {
+        return;
+    }
+
     // Leave fullscreen when changing the zoom level
     if (IsFullScreenMode()) {
         OnViewFullscreen();
@@ -14568,6 +14576,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
 
     m_fCustomGraph = false;
     m_fShockwaveGraph = false;
+    m_fWebRTCGraph = false;
 
     const CAppSettings& s = AfxGetAppSettings();
 
@@ -14610,6 +14619,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
                 throw (UINT)IDS_MAINFRM_77;
             }
             m_bUseSeekPreview = false;
+            m_fWebRTCGraph = true;
         } else if (engine == ShockWave) {
             HRESULT hr = E_FAIL;
             CComPtr<IUnknown> pUnk = (IUnknown*)(INonDelegatingUnknown*)DEBUG_NEW DSObjects::CShockwaveGraph(m_pVideoWnd->m_hWnd, hr);
@@ -14626,7 +14636,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
             m_fShockwaveGraph = true;
         }
 
-        m_fCustomGraph = m_fShockwaveGraph || engine == WebRTCPlayback;
+        m_fCustomGraph = m_fShockwaveGraph || m_fWebRTCGraph;
 
         if (!m_fCustomGraph) {
             CFGManagerPlayer* fgm = DEBUG_NEW CFGManagerPlayer(_T("CFGManagerPlayer"), firstfilename, m_pVideoWnd->m_hWnd);
@@ -17530,7 +17540,7 @@ void CMainFrame::CloseMediaPrivate()
 
     m_pProv.Release();
 
-    m_fCustomGraph = m_fShockwaveGraph = false;
+    m_fCustomGraph = m_fShockwaveGraph = m_fWebRTCGraph = false;
 
     m_lastOMD.Free();
 	
@@ -24782,7 +24792,7 @@ REFTIME CMainFrame::GetAvgTimePerFrame() const
 void CMainFrame::OnVideoSizeChanged(const bool bWasAudioOnly /*= false*/)
 {
     const auto& s = AfxGetAppSettings();
-    if (GetLoadState() == MLS::LOADED &&
+    if (!m_fWebRTCGraph && GetLoadState() == MLS::LOADED &&
             ((s.fRememberZoomLevel && (s.fLimitWindowProportions || m_bAllowWindowZoom)) || m_fAudioOnly || bWasAudioOnly) &&
             !(IsFullScreenMode() || IsZoomed() || IsIconic() || IsAeroSnapped())) {
         CSize videoSize;

@@ -472,6 +472,7 @@ private:
 
     bool m_fCustomGraph;
     bool m_fShockwaveGraph;
+    bool m_fWebRTCGraph;
 
     CComPtr<ISubClock> m_pSubClock;
 

@@ -221,7 +221,7 @@ CAppSettings::CAppSettings()
     , iContrast(0)
     , iHue(0)
     , iSaturation(0)
-    , nUpdaterAutoCheck(-1)
+    , nUpdaterAutoCheck(AUTOUPDATE_DISABLE)
     , nUpdaterDelay(7)
     , eCaptionMenuMode(MODE_SHOWCAPTIONMENU)
     , fHideNavigation(false)
@@ -2287,7 +2287,8 @@ void CAppSettings::LoadSettings()
     bHighPrecisionTimer = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_HIGH_PRECISION_TIMER, FALSE);
     bTimerShowPercentage = !!pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_TIMER_SHOW_PERCENTAGE, FALSE);
 
-    nUpdaterAutoCheck = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_UPDATER_AUTO_CHECK, AUTOUPDATE_UNKNOWN);
+    // Fork releases use their own update channel; automatic checks are opt-in.
+    nUpdaterAutoCheck = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_UPDATER_AUTO_CHECK, AUTOUPDATE_DISABLE);
     nUpdaterDelay = pApp->GetProfileInt(IDS_R_SETTINGS, IDS_RS_UPDATER_DELAY, 7);
     if (nUpdaterDelay < 1) {
         nUpdaterDelay = 1;

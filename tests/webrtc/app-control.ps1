@@ -57,7 +57,14 @@ switch ($Action) {
     'command' { [MPCWindow]::PostMessage($window, 273, [IntPtr][int]$Value, [IntPtr]::Zero) | Out-Null }
     'volume' { [MPCWindow]::CommandLine($window, @('/volume', $Value)) }
     'open' { [MPCWindow]::CommandLine($window, @($Value, '/play')) }
-    'resize' { [MPCWindow]::SetWindowPos($window, [IntPtr]::Zero, 50, 50, 960, 640, 20) | Out-Null }
+    'resize' {
+        $width, $height = 960, 640
+        if ($Value) {
+            if ($Value -notmatch '^(\d+)x(\d+)$') { throw 'Expected WIDTHxHEIGHT' }
+            $width, $height = [int]$Matches[1], [int]$Matches[2]
+        }
+        [MPCWindow]::SetWindowPos($window, [IntPtr]::Zero, 50, 50, $width, $height, 20) | Out-Null
+    }
     'rect' { $rect = New-Object MPCWindow+Rect; [MPCWindow]::GetWindowRect($window, [ref]$rect) | Out-Null; $rect | ConvertTo-Json -Compress }
     'text' { [MPCWindow]::Text($window) }
     'modules' { (Get-Process -Id $ProcessId).Modules.FileName | ConvertTo-Json -Compress }
