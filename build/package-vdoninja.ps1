@@ -69,9 +69,19 @@ Copy-Item "$upstream\MediaInfo.dll" $stage
 Copy-Item "$upstream\MPCVR", "$upstream\Toolbars" $stage -Recurse
 Copy-Item "$root\src\mpc-hc\res\shaders\dx9" "$stage\Shaders" -Recurse
 Copy-Item "$root\src\mpc-hc\res\shaders\dx11" "$stage\Shaders11" -Recurse
-Copy-Item "$root\COPYING.txt", "$root\Authors.txt", "$root\README.md", "$root\distrib\WebView2_LICENSE.txt",
+Copy-Item "$root\COPYING.txt", "$root\docs\Authors.txt", "$root\Readme.md", "$root\distrib\WebView2_LICENSE.txt",
     "$root\distrib\WebView2_NOTICE.txt", "$root\distrib\MediaInfo_LICENSE.txt", "$root\distrib\MPCVR_LICENSE.txt" $stage
 Copy-Item "$root\src\thirdparty\LAVFilters\src\COPYING" "$stage\LAVFilters64\COPYING.txt"
+# Preserve dependency notices alongside the GPL and WebView2 notices. Read from
+# version-controlled files, including the pinned submodule checkouts.
+$notices = @(git -C $root ls-files --recurse-submodules) | Where-Object {
+    (Split-Path $_ -Leaf) -match '^(COPYING|LICENSE|LICENCE|COPYRIGHT)([._-].*)?$|^FTL\.TXT$'
+}
+foreach ($notice in ($notices + @('src/thirdparty/zlib/README'))) {
+    $destination = Join-Path "$stage\Licenses" $notice
+    New-Item -ItemType Directory -Force (Split-Path $destination) | Out-Null
+    Copy-Item (Join-Path $root $notice) $destination
+}
 Copy-Item "$root\docs" "$stage\docs" -Recurse
 Copy-Item "$root\docs\releases\$Version.md" "$stage\RELEASE-NOTES.md"
 [IO.File]::WriteAllText((Join-Path $stage 'mpc-hc64.ini'), "[Settings]`r`nUpdaterAutoCheck=0`r`n", [Text.Encoding]::ASCII)
@@ -87,8 +97,9 @@ $info = [ordered]@{
 }
 $info | ConvertTo-Json -Depth 3 | Set-Content "$stage\BUILD-INFO.json" -Encoding UTF8
 $stageFull = (Resolve-Path $stage).Path
-Get-ChildItem $stageFull -File -Recurse | Sort-Object FullName | ForEach-Object {
-    '{0} *{1}' -f (Get-FileHash $_.FullName).Hash.ToLowerInvariant(), $_.FullName.Substring($stageFull.Length+1).Replace('\','/')
+$packageFiles = @(Get-ChildItem -LiteralPath $stageFull -File -Recurse | Sort-Object FullName)
+$packageFiles | ForEach-Object {
+    '{0} *{1}' -f (Get-FileHash -LiteralPath $_.FullName).Hash.ToLowerInvariant(), $_.FullName.Substring($stageFull.Length+1).Replace('\','/')
 } | Set-Content "$stage\FILES.sha256" -Encoding ASCII
 Compress-Archive -LiteralPath $stage -DestinationPath $archive -CompressionLevel Optimal
 '{0} *{1}' -f (Get-FileHash $archive).Hash.ToLowerInvariant(), (Split-Path $archive -Leaf) |
