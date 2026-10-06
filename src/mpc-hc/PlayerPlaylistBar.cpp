@@ -27,6 +27,7 @@
 #include "DSUtil.h"
 #include "SaveTextFileDialog.h"
 #include "PlayerPlaylistBar.h"
+#include "WebRTCUrl.h"
 #include "SettingsDefines.h"
 #include "InternalFiltersConfig.h"
 #include "PathUtils.h"
@@ -505,6 +506,11 @@ void CPlayerPlaylistBar::ParsePlayList(CAtlList<CString>& fns, CAtlList<CString>
         }
     }
 
+    // WebRTC endpoints use signaling, not a downloadable media/playlist body.
+    if (WebRTC::ParseUrl(fns.GetHead().GetString()).kind != WebRTC::UrlKind::None) {
+        AddItem(fns, subs, label, ydl_src, ydl_ua, cue, ydl_subs);
+        return;
+    }
     CAtlList<CString> redir;
     CString ct = GetContentType(fns.GetHead(), &redir);
     if (!redir.IsEmpty()) {

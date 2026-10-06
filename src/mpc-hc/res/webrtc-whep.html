@@ -1,0 +1,147 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<html><head><meta charset="utf-8"><title>WHEP playback</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color:#ddd;font:16px sans-serif}
+video{width:100%;height:100%;object-fit:contain}#status{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;pointer-events:none}
+</style></head><body><video autoplay playsinline></video><div id="status">Connecting to WHEP stream...</div>
+<script>
+"use strict";
+const video = document.querySelector("video");
+const status = document.querySelector("#status");
+let current = null;
+const send = message => window.chrome.webview.postMessage(message);
+function release(session) {
+    session.closed = true;
+    clearTimeout(session.watchdog);
+    session.pc.close();
+    if (session.resource) {
+        const resource = session.resource;
+        session.resource = null;
+        // Keepalive also allows cleanup when the host closes the document.
+        fetch(resource, {method: "DELETE", headers: session.headers,
+            mode: "cors", credentials: "omit", redirect: "error", keepalive: true}).catch(() => {});
+    }
+}
+function stop() {
+    if (current) release(current);
+    current = null;
+    video.srcObject = null;
+    status.textContent = "Stopped";
+}
+function gather(pc) {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => finish(new Error("ICE gathering timed out")), 12000);
+        function finish(error) {
+            clearTimeout(timer);
+            pc.removeEventListener("icegatheringstatechange", changed);
+            error ? reject(error) : resolve();
+        }
+        function changed() { if (pc.iceGatheringState === "complete") finish(); }
+        pc.addEventListener("icegatheringstatechange", changed);
+        changed();
+    });
+}
+async function connect(address) {
+    stop();
+    status.textContent = "Connecting to WHEP stream...";
+    const endpoint = new URL(address);
+    if (!["http:", "https:"].includes(endpoint.protocol)) throw new Error("Invalid WHEP URL");
+    const token = new URLSearchParams(endpoint.hash.slice(1)).get("token");
+    endpoint.hash = "";
+    const headers = token ? {Authorization: `Bearer ${token}`} : {};
+    const pc = new RTCPeerConnection({bundlePolicy: "max-bundle",
+        iceServers: [{urls: "stun:stun.l.google.com:19302"}]});
+    const session = {pc, headers, resource: null, closed: false};
+    current = session;
+    const stream = new MediaStream();
+    video.srcObject = stream;
+    const fail = text => {
+        if (session.closed || current !== session) return;
+        status.textContent = text;
+        send(`error:${text}`);
+        release(session);
+    };
+    pc.ontrack = event => {
+        stream.addTrack(event.track);
+    };
+    pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "failed") fail("WHEP connection failed. Reopen the URL to reconnect.");
+        else if (pc.connectionState === "disconnected") status.textContent = "WHEP connection interrupted...";
+        else if (pc.connectionState === "connected") {
+            status.textContent = "";
+            clearTimeout(session.watchdog);
+        }
+    };
+    session.watchdog = setTimeout(() => fail("WHEP connection timed out. Check the endpoint and network."), 45000);
+    try {
+        const audio = pc.addTransceiver("audio", {direction: "recvonly"});
+        const visual = pc.addTransceiver("video", {direction: "recvonly"});
+        // Keep repair codecs paired by the browser and prefer H.264 without
+        // removing VP8, VP9, or AV1 from negotiation.
+        const capabilities = RTCRtpReceiver.getCapabilities("video");
+        if (visual.setCodecPreferences && capabilities) {
+            const codecs = capabilities.codecs;
+            visual.setCodecPreferences([...codecs.filter(c => c.mimeType.toLowerCase() === "video/h264"),
+                ...codecs.filter(c => c.mimeType.toLowerCase() !== "video/h264")]);
+        }
+        const audioCaps = RTCRtpReceiver.getCapabilities("audio");
+        if (audio.setCodecPreferences && audioCaps) {
+            audio.setCodecPreferences([...audioCaps.codecs.filter(c => c.mimeType.toLowerCase() === "audio/opus"),
+                ...audioCaps.codecs.filter(c => c.mimeType.toLowerCase() !== "audio/opus")]);
+        }
+        const offer = await pc.createOffer();
+        // Opus advertises two RTP channels even for mono. Explicitly allow
+        // stereo reception; the source may still send mono.
+        const opus = /a=rtpmap:(\d+) opus\/48000\/2/i.exec(offer.sdp);
+        if (opus) {
+            const fmtp = new RegExp(`(a=fmtp:${opus[1]} [^\\r\\n]*)`);
+            if (fmtp.test(offer.sdp)) offer.sdp = offer.sdp.replace(fmtp, "$1;stereo=1");
+        }
+        await pc.setLocalDescription(offer);
+        await gather(pc);
+        if (session.closed) return;
+        const response = await fetch(endpoint.href, {method: "POST", credentials: "omit", mode: "cors",
+            headers: {...headers, "Content-Type": "application/sdp", Accept: "application/sdp"},
+            body: pc.localDescription.sdp, signal: AbortSignal.timeout(20000)});
+        const location = response.headers.get("Location");
+        if (location) {
+            const resource = new URL(location, response.url);
+            // Do not forward an authorization token to a different origin.
+            if (resource.origin !== endpoint.origin) throw new Error("WHEP session Location changed origin");
+            session.resource = resource.href;
+        }
+        if (session.closed) { release(session); return; }
+        if (response.status !== 201 && response.status !== 200 && response.status !== 406) {
+            throw new Error(`WHEP server returned HTTP ${response.status}`);
+        }
+        if (!response.headers.get("Content-Type")?.toLowerCase().startsWith("application/sdp")) {
+            throw new Error("WHEP endpoint did not return SDP");
+        }
+        const sdp = await response.text();
+        if (session.closed) return;
+        if (response.status === 406) {
+            if (!session.resource) throw new Error("WHEP counter-offer requires an exposed Location header");
+            await pc.setLocalDescription({type: "rollback"});
+            await pc.setRemoteDescription({type: "offer", sdp});
+            for (const transceiver of pc.getTransceivers()) transceiver.direction = "recvonly";
+            await pc.setLocalDescription(await pc.createAnswer());
+            await gather(pc);
+            if (session.closed) return;
+            const patched = await fetch(session.resource, {method: "PATCH", credentials: "omit", redirect: "error",
+                headers: {...headers, "Content-Type": "application/sdp"},
+                body: pc.localDescription.sdp, signal: AbortSignal.timeout(20000)});
+            if (!patched.ok) throw new Error(`WHEP answer rejected (HTTP ${patched.status})`);
+        } else {
+            await pc.setRemoteDescription({type: "answer", sdp});
+        }
+    } catch (error) {
+        fail(error instanceof TypeError ? "Cannot reach WHEP endpoint. Check its URL, TLS and CORS settings." : error.message);
+    }
+}
+window.chrome.webview.addEventListener("message", event => {
+    if (event.data.type === "open") connect(event.data.url).catch(error => send(`error:${error.message}`));
+    if (event.data.type === "stop") stop();
+});
+window.addEventListener("pagehide", stop);
+</script></body></html>

@@ -53,6 +53,7 @@
   <ImportGroup Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\common.props" />
+    <Import Project="..\..\build\WebRTC.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
@@ -313,6 +314,10 @@ if not exist "$(OutDir)LAVFilters" if exist "$(SolutionDir)bin\mpc-hc_x86\LAVFil
     <ClCompile Include="SelectMediaType.cpp" />
     <ClCompile Include="Shaders.cpp" />
     <ClCompile Include="ShockwaveGraph.cpp" />
+    <ClCompile Include="WebRTCGraph.cpp" />
+    <ClCompile Include="WebRTCPlayer.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="MediaTransControls.cpp" />
     <ClCompile Include="STB_Image.cpp" />
     <ClCompile Include="SVGImage.cpp" />
@@ -528,6 +533,9 @@ if not exist "$(OutDir)LAVFilters" if exist "$(SolutionDir)bin\mpc-hc_x86\LAVFil
     <ClInclude Include="SettingsDefines.h" />
     <ClInclude Include="Shaders.h" />
     <ClInclude Include="ShockwaveGraph.h" />
+    <ClInclude Include="WebRTCGraph.h" />
+    <ClInclude Include="WebRTCPlayer.h" />
+    <ClInclude Include="WebRTCUrl.h" />
     <ClInclude Include="StaticLink.h" />
     <ClInclude Include="StatusLabel.h" />
     <ClInclude Include="stdafx.h" />
@@ -658,6 +666,7 @@ if not exist "$(OutDir)LAVFilters" if exist "$(SolutionDir)bin\mpc-hc_x86\LAVFil
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="mpc-hc.rc" />
+    <ResourceCompile Include="WebRTCResources.rc" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\build\BuildConfig.vcxproj">

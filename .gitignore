@@ -17,6 +17,7 @@ _*.bat
 /.vs
 /bin
 /bin17
+/packages/
 /build.user.bat
 /contrib/[Aa][Ss]tyle.exe
 /contrib/cov-int

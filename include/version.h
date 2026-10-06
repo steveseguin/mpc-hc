@@ -48,7 +48,8 @@
 
 #define MPC_VERSION_MAJOR       2
 #define MPC_VERSION_MINOR       8
-#define MPC_VERSION_PATCH       2
+#define MPC_VERSION_PATCH       3
+#define MPC_VERSION_EDITION     _T("VDO.Ninja Edition 1")
 
 #if MPC_VERSION_REV > 0
 #define MPC_NIGHTLY_RELEASE     1
@@ -85,7 +86,7 @@
                                 MAKE_STR(MPC_VERSION_MINOR) _T(".") \
                                 MAKE_STR(MPC_VERSION_PATCH) _T(".") \
                                 MAKE_STR(MPC_VERSION_REV) \
-                                MPC_VERSION_ADDITIONAL
+                                MPC_VERSION_ADDITIONAL _T(" - ") MPC_VERSION_EDITION
 
 #else // !MPC_NIGHTLY_RELEASE
 
@@ -95,7 +96,7 @@
 #define MPC_VERSION_STR_FULL    MAKE_STR(MPC_VERSION_MAJOR) _T(".") \
                                 MAKE_STR(MPC_VERSION_MINOR) _T(".") \
                                 MAKE_STR(MPC_VERSION_PATCH) \
-                                MPC_VERSION_ADDITIONAL
+                                MPC_VERSION_ADDITIONAL _T(" - ") MPC_VERSION_EDITION
 
 #endif // MPC_NIGHTLY_RELEASE
 

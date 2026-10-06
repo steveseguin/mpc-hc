@@ -30,6 +30,8 @@
 #include "FGManager.h"
 #include "FGManagerBDA.h"
 #include "ShockwaveGraph.h"
+#include "WebRTCGraph.h"
+#include "WebRTCUrl.h"
 #include "TextPassThruFilter.h"
 #include "FakeFilterMapper2.h"
 
@@ -14598,7 +14600,17 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
         }
 
         engine_t engine = s.m_Formats.GetEngine(firstfilename);
-        if (engine == ShockWave) {
+        if (engine == WebRTCPlayback) {
+            HRESULT hr = E_FAIL;
+            CComPtr<IUnknown> pUnk = (IUnknown*)(INonDelegatingUnknown*)DEBUG_NEW DSObjects::CWebRTCGraph(m_pVideoWnd->m_hWnd, hr);
+            if (SUCCEEDED(hr) && pUnk) {
+                m_pGB = CComQIPtr<IGraphBuilder>(pUnk);
+            }
+            if (FAILED(hr) || !m_pGB) {
+                throw (UINT)IDS_MAINFRM_77;
+            }
+            m_bUseSeekPreview = false;
+        } else if (engine == ShockWave) {
             HRESULT hr = E_FAIL;
             CComPtr<IUnknown> pUnk = (IUnknown*)(INonDelegatingUnknown*)DEBUG_NEW DSObjects::CShockwaveGraph(m_pVideoWnd->m_hWnd, hr);
             if (!pUnk) {
@@ -14614,7 +14626,7 @@ void CMainFrame::OpenCreateGraphObject(OpenMediaData* pOMD)
             m_fShockwaveGraph = true;
         }
 
-        m_fCustomGraph = m_fShockwaveGraph;
+        m_fCustomGraph = m_fShockwaveGraph || engine == WebRTCPlayback;
 
         if (!m_fCustomGraph) {
             CFGManagerPlayer* fgm = DEBUG_NEW CFGManagerPlayer(_T("CFGManagerPlayer"), firstfilename, m_pVideoWnd->m_hWnd);
@@ -24932,6 +24944,9 @@ bool CMainFrame::IsOnYDLWhitelist(CString url) {
 
 bool CMainFrame::CanSendToYoutubeDL(const CString url)
 {
+    if (WebRTC::ParseUrl(url.GetString()).kind != WebRTC::UrlKind::None) {
+        return false;
+    }
     if (url.Left(4).MakeLower() == _T("http")) {
         auto& s = AfxGetAppSettings();
         if (!s.bUseYDL) {

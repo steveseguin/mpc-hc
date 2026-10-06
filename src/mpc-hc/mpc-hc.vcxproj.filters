@@ -334,6 +334,12 @@
     <ClCompile Include="Shaders.cpp">
       <Filter>Player Config</Filter>
     </ClCompile>
+    <ClCompile Include="WebRTCGraph.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
+    <ClCompile Include="WebRTCPlayer.cpp">
+      <Filter>Graph</Filter>
+    </ClCompile>
     <ClCompile Include="ShockwaveGraph.cpp">
       <Filter>Graph\Shockwave Flash</Filter>
     </ClCompile>
@@ -910,6 +916,15 @@
     <ClInclude Include="Shaders.h">
       <Filter>Player Config</Filter>
     </ClInclude>
+    <ClInclude Include="WebRTCGraph.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="WebRTCPlayer.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
+    <ClInclude Include="WebRTCUrl.h">
+      <Filter>Graph</Filter>
+    </ClInclude>
     <ClInclude Include="ShockwaveGraph.h">
       <Filter>Graph\Shockwave Flash</Filter>
     </ClInclude>
@@ -1466,6 +1481,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ResourceCompile Include="WebRTCResources.rc" />
     <ResourceCompile Include="mpc-hc.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>

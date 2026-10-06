@@ -444,6 +444,8 @@ IF /I "%NAME%" == "MPC-HC" (
     COPY /Y /V "%VS_OUT_DIR%\mpc-hc.exe"   "%PCKG_NAME%\mpc-hc.exe" >NUL
   )
   COPY /Y /V "%VS_OUT_DIR%\mpciconlib.dll"                "%PCKG_NAME%\*.dll" >NUL
+  COPY /Y /V "..\distrib\WebView2_LICENSE.txt"              "%PCKG_NAME%" >NUL
+  COPY /Y /V "..\distrib\WebView2_NOTICE.txt"               "%PCKG_NAME%" >NUL
   IF NOT DEFINED MPCHC_LITE (
     COPY /Y /V "%VS_OUT_DIR%\Lang\mpcresources.??.dll"    "%PCKG_NAME%\Lang\" >NUL
     COPY /Y /V "%VS_OUT_DIR%\Lang\mpcresources.??_??.dll" "%PCKG_NAME%\Lang\" >NUL

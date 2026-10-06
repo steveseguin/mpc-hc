@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <WebView2SdkDir Condition="'$(WebView2SdkDir)' == ''">$(MSBuildThisFileDirectory)..\packages\Microsoft.Web.WebView2.1.0.2903.40</WebView2SdkDir>
+    <WebView2Arch Condition="'$(Platform)' == 'Win32'">x86</WebView2Arch>
+    <WebView2Arch Condition="'$(Platform)' == 'x64'">x64</WebView2Arch>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(WebView2SdkDir)\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(WebView2SdkDir)\build\native\$(WebView2Arch)\WebView2LoaderStatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target Name="CheckWebView2Sdk" BeforeTargets="PrepareForBuild">
+    <Error Condition="!Exists('$(WebView2SdkDir)\build\native\include\WebView2.h')"
+           Text="WebRTC playback requires the WebView2 SDK. Run powershell -ExecutionPolicy Bypass -File build\restore_webview2.ps1 from the repository root." />
+  </Target>
+  <Target Name="CopyWebView2Notices" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)..\distrib\WebView2_LICENSE.txt;$(MSBuildThisFileDirectory)..\distrib\WebView2_NOTICE.txt" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

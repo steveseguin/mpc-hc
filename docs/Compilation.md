@@ -73,6 +73,10 @@ If you don't have Git installed the build still works, but the revision number w
 
 ## Part E: Compiling
 
+Restore the WebView2 SDK used by WebRTC playback once from the repository root:
+`powershell -NoProfile -ExecutionPolicy Bypass -File build\restore_webview2.ps1`.
+See [WebRTC playback](WebRTC.md) for runtime requirements and validation.
+
 1. Open the solution file **C:\mpc-hc\mpc-hc.sln**.
    Change the solution's configuration to **Release** (in the toolbar).
 2. Press **F7** to build the solution. This also builds LAV Filters.

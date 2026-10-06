@@ -23,6 +23,7 @@
 #include <atlbase.h>
 #include <atlpath.h>
 #include "MediaFormats.h"
+#include "WebRTCUrl.h"
 #include "resource.h"
 
 //
@@ -237,6 +238,9 @@ bool CMediaFormats::IsUsingEngine(CString path, engine_t e) const
 
 engine_t CMediaFormats::GetEngine(CString path) const
 {
+    if (WebRTC::ParseUrl(path.GetString()).kind != WebRTC::UrlKind::None) {
+        return WebRTCPlayback;
+    }
     CString ext = CLongPath(path.Trim()).GetExtension().MakeLower();
     if (ext == _T(".swf")) {
         return ShockWave;

@@ -1,4 +1,46 @@
-# Media Player Classic - Home Cinema
+# MPC-HC — VDO.Ninja Edition
+
+This fork adds **VDO.Ninja and WHEP live playback** to Media Player Classic - Home
+Cinema. Download the **Windows x64 portable ZIP** from
+[this fork's releases](https://github.com/steveseguin/mpc-hc/releases), extract it,
+and run `mpc-hc64.exe`. WebRTC playback requires Windows 10/11 and the
+[Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+
+## Open a VDO.Ninja or WHEP stream
+
+Choose **File > Open File/URL** (`Ctrl+O`), paste a viewing URL, and press **OK**.
+You can also pass the URL on the command line or add it to a playlist.
+
+| Stream | Example URL |
+| --- | --- |
+| VDO.Ninja viewer | `https://vdo.ninja/?view=STREAM_ID&password=PASSWORD&cleanoutput&autostart` |
+| VDO.Ninja room scene | `https://vdo.ninja/?room=ROOM&scene&password=PASSWORD&cleanoutput` |
+| WHEP endpoint | `https://your-server.example/live/STREAM_ID/whep` |
+| Meshcast WHEP endpoint | `https://region.meshcast.io/whep/STREAM_ID` |
+| WHEP at any HTTPS path | `whep+https://your-server.example/your-endpoint` |
+| Local HTTP WHEP | `whep+http://192.168.1.10:8889/STREAM_ID/whep` |
+| Self-hosted VDO.Ninja | `vdoninja+https://your-host.example/?view=STREAM_ID` |
+
+Use your stream's actual viewer or WHEP endpoint URL; replace the example IDs,
+passwords and hosts. For a bearer-protected WHEP endpoint, append
+`#token=URL_ENCODED_TOKEN`. A Meshcast webpage URL is not itself a WHEP endpoint.
+
+MPC's volume slider, mute, play/pause, Stop, keyboard shortcuts and fullscreen
+control playback. Pause holds presentation while the live connection stays open;
+Stop disconnects and Play reconnects. H.264 and Opus are preferred for direct
+WHEP; VP8, VP9, AV1 and mono/stereo Opus sources are also supported when available
+in the runtime. VDO.Ninja handles its own signaling, passwords, rooms and
+asynchronous data-channel `whepSettings` handoffs.
+
+WebRTC playback uses an embedded WebView2 engine. MPC's DirectShow filters,
+shaders and audio-output-device settings do not apply to these streams; browser
+audio uses the Windows default output device. Direct WHEP servers must allow
+browser CORS, including `Origin: null`. See [WebRTC playback](docs/WebRTC.md) for
+authentication, supported endpoints, limitations and build/test instructions.
+
+The upstream MPC-HC overview follows.
+
+## Media Player Classic - Home Cinema
 
 Media Player Classic - Home Cinema (MPC-HC) is a free and open-source video and audio player for Windows. It is famous and loved for its simple and effective user interface, providing an excellent user experience. It offers a huge amount of functionality. Being a DirectShow player, it also allows flexibility and extensibility through third party filters.
 

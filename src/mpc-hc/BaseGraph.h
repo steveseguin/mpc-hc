@@ -37,7 +37,8 @@ protected:
 
 enum engine_t {
     DirectShow = 0,
-    ShockWave  = 3
+    ShockWave  = 3,
+    WebRTCPlayback = 4
 };
 
 interface __declspec(uuid("B110CDE5-6331-4118-8AAF-A870D6F7E2E4"))
