@@ -1,5 +1,106 @@
 # WebRTC playback (initial integration)
 
+## WebView2 setup and troubleshooting
+
+VDO.Ninja and WHEP streams use **WebView2**, an embedded browser engine inside
+MPC-HC's video area. The portable player ZIP does **not** include that runtime.
+Normal file playback uses MPC-HC's existing engine and does not need WebView2.
+
+### Install the runtime
+
+1. Open [Microsoft's WebView2 download page](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+2. Choose **Evergreen Bootstrapper** for an online installation. It downloads
+   the runtime appropriate for your computer. For offline installation on an
+   Intel/AMD 64-bit PC, choose **Evergreen Standalone Installer > x64**.
+3. Run the installer and let it finish. Close MPC-HC completely, then reopen
+   `mpc-hc64.exe` from your extracted VDO.Ninja Edition folder.
+4. Use **File > Open File/URL** (`Ctrl+O`) to open your viewing link.
+
+These are runtime installers; you do not need the developer SDK. The
+[WebView2 Runtime works independently of the Edge browser](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/end-user-faq#will-uninstalling-microsoft-edge-make-webview2-stop-working),
+so installing Edge itself is not a prerequisite.
+
+**Do I need administrator rights?** Microsoft supports per-user installation
+when the installer runs without elevation, and machine-wide installation when
+elevated. An existing machine-wide Edge Updater can change that behavior; managed
+PC policies may also apply. See [Microsoft's installation details](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#installing-the-runtime-as-per-machine-or-per-user).
+
+**Will an old Windows 10 installation work?** Press **Win+R**, type `winver`, and
+check your edition and version. Microsoft lists Windows 10 version **1709 and
+later**, plus specific older Enterprise LTSC editions; see the
+[supported Windows versions](https://learn.microsoft.com/en-us/microsoft-edge/webview2/#supported-windows-versions).
+Having no Edge browser does not by itself mean Windows is incompatible. This
+fork's WebRTC playback requires Windows 10/11 and a current runtime; it does not
+support WebRTC on Windows 7/8/8.1.
+
+**Can I just copy a DLL into the MPC-HC folder?** No. `WebView2Loader.dll` only
+helps an application locate the browser runtime. This player already links the
+loader into its executable, so adding that DLL will not fix a missing runtime.
+Use the installer above or the complete Fixed Version option below.
+
+### Keep your existing MPC-HC installation
+
+Extract the [VDO.Ninja Edition ZIP](https://github.com/steveseguin/mpc-hc/releases/latest)
+into a separate writable folder. Keep all its files, including `mpc-hc64.ini`,
+and launch its `mpc-hc64.exe` directly. The included INI enables portable player
+settings; do not overwrite the files in your regular MPC-HC installation.
+Close other MPC-HC instances first if a link opens in the wrong player.
+
+The player settings stay beside the executable. WebView2's browser profile and
+cache are stored separately in `%LOCALAPPDATA%\MPC-HC\WebRTC`, so this is not a
+fully self-contained browser profile. Installing the runtime does not replace
+your MPC-HC application. Evergreen is shared with other WebView2 apps and
+[updates independently](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/evergreen-vs-fixed-version#the-evergreen-runtime-distribution-mode)
+of this fork's default-off player update checks.
+
+### Use a local runtime folder without installing Evergreen
+
+Microsoft also offers a **Fixed Version** runtime on the
+[same download page](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+It is a complete browser folder, not a DLL, and adds hundreds of megabytes.
+This advanced setup has not been validated for this release; Evergreen is the
+recommended setup for users.
+
+1. Download the **x64 Fixed Version** runtime for this x64 player. Extract the
+   entire package using Microsoft's [Fixed Version deployment instructions](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution#the-fixed-version-runtime-distribution-mode).
+   Keep it on a local disk, not a network share.
+2. Arrange the extracted files so `WebView2\msedgewebview2.exe` exists beside
+   `mpc-hc64.exe`, keeping all runtime subfolders and files intact.
+3. On **Windows 10**, follow the folder-permission commands in those Microsoft
+   instructions. Fixed Version 120 and later need the documented read/execute
+   permissions for the application-container groups.
+4. Save the following as `Start-MPC-WebView2.cmd` beside `mpc-hc64.exe`. Close
+   existing MPC-HC instances, then launch this file:
+
+```bat
+@echo off
+setlocal
+set "WEBVIEW2_BROWSER_EXECUTABLE_FOLDER=%~dp0WebView2"
+"%~dp0mpc-hc64.exe" %*
+endlocal
+```
+
+This uses Microsoft's supported [runtime-folder environment override](https://learn.microsoft.com/en-us/microsoft-edge/webview2/reference/win32/webview2-idl?view=webview2-1.0.3537.50#createcorewebview2environmentwithoptions)
+for the launched process. The current player does not automatically search for a
+runtime beside its executable. Fixed Version runtimes require
+[manual updates](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/evergreen-vs-fixed-version#the-fixed-version-runtime-distribution-mode);
+the browser profile still uses the location described above.
+
+### If playback still will not start
+
+If MPC-HC reports that WebView2 is required, finish the runtime installation and
+restart the player first. If the installer fails, check `winver` against the
+supported versions above and try the matching Evergreen Standalone Installer.
+Microsoft links its [installation troubleshooting](https://support.microsoft.com/en-us/edge/troubleshooting-tips-for-downloading-installing-and-updating-microsoft-edge)
+from the runtime download page.
+
+If the error remains, include your Windows edition/version, MPC-HC release,
+runtime version (if installed), and exact error text when reporting it. The
+player's runtime-required message can also indicate a runtime initialization
+failure; it does not prove that a DLL is missing.
+
+## Open a stream
+
 Open a viewer URL using **File > Open File/URL**, drag it into the player, or pass
 it on the command line. WebRTC URLs bypass yt-dlp and playlist content sniffing.
 
@@ -27,10 +128,8 @@ as an Authorization header, and leaves the endpoint's query parameters intact.
 Like other URLs opened in MPC-HC, these links may appear in history or saved
 playlists; use the existing history exclusion settings for private links.
 
-This implementation embeds **Microsoft Edge WebView2** in MPC-HC's video area.
-Install the [WebView2 Evergreen Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
-if it is missing. This playback engine requires Windows 10/11 with a current
-runtime; ordinary DirectShow playback retains its existing system requirements.
+For runtime requirements and installation, see
+[WebView2 setup and troubleshooting](#webview2-setup-and-troubleshooting).
 No camera or microphone permission is granted by this receive-only engine.
 
 VDO.Ninja links load the viewer from the URL's host. This intentionally keeps

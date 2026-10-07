@@ -1,10 +1,35 @@
 # MPC-HC — VDO.Ninja Edition
 
 This fork adds **VDO.Ninja and WHEP live playback** to Media Player Classic - Home
-Cinema. Download the **Windows x64 portable ZIP** from
-[this fork's releases](https://github.com/steveseguin/mpc-hc/releases), extract it,
-and run `mpc-hc64.exe`. WebRTC playback requires Windows 10/11 and the
-[Microsoft Edge WebView2 Runtime](https://developer.microsoft.com/en-us/microsoft-edge/webview2/).
+Cinema. [VDO.Ninja Edition 2](https://github.com/steveseguin/mpc-hc/releases/tag/2.8.4-vdoninja.2)
+uses MPC-HC 2.8.4 code. This is a separate fork of
+[upstream MPC-HC](https://github.com/clsid2/mpc-hc).
+
+## Download and setup
+
+1. Download the **Windows x64 portable ZIP** from
+   [this fork's releases](https://github.com/steveseguin/mpc-hc/releases/latest).
+   Choose the `MPC-HC...x64.zip` asset, rather than GitHub's source-code archive.
+2. Extract the **entire ZIP** into a writable folder of your choice. Keep it
+   separate from your existing MPC-HC installation and keep the included
+   `mpc-hc64.ini` beside `mpc-hc64.exe` to retain portable player settings.
+3. VDO.Ninja/WHEP playback requires **Windows 10/11 and the WebView2 Runtime**.
+   If it is missing, open [Microsoft's WebView2 downloads](https://developer.microsoft.com/en-us/microsoft-edge/webview2/)
+   and choose **Evergreen Bootstrapper**. For an offline installation on an
+   Intel/AMD 64-bit PC, choose **Evergreen Standalone Installer > x64**.
+   Run the downloaded installer, then close and reopen MPC-HC.
+4. Run `mpc-hc64.exe` from the extracted folder and open your viewing link below.
+
+**A single DLL is not enough.** WebView2 is the embedded browser engine used to
+play these streams. Its loader is already built into this player; copying
+`WebView2Loader.dll` into the folder does not provide the runtime. You do not need
+the WebView2 SDK or the Edge browser itself; Microsoft explains the browser's
+independence in its [WebView2 FAQ](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/end-user-faq#will-uninstalling-microsoft-edge-make-webview2-stop-working).
+
+See [WebView2 setup and troubleshooting](docs/WebRTC.md#webview2-setup-and-troubleshooting)
+for old Windows versions, installation permissions, keeping an existing MPC-HC
+installation separate, and the advanced option of using a complete local runtime
+folder without installing Evergreen.
 
 ## Open a VDO.Ninja or WHEP stream
 
@@ -121,7 +146,10 @@ Note 3: [yt-dlp fork with Win7 support](https://github.com/nicolaasjan/yt-dlp/re
 
 ## System Requirements
 
-* Windows 7 / 8 / 8.1 / 10 / 11
+* Ordinary file playback: Windows 7 / 8 / 8.1 / 10 / 11.
+* VDO.Ninja/WHEP playback: Windows 10/11 with a current WebView2 Runtime.
+  For old Windows 10 installations, check the
+  [version requirements and setup guide](docs/WebRTC.md#webview2-setup-and-troubleshooting).
 
 ## License
 
